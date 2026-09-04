@@ -178,3 +178,88 @@ async def test_get_nonexistent_task_returns_404(client: AsyncClient, super_admin
 
     response = await client.get("/api/v1/tasks/TSK9999", headers=headers)
     assert response.status_code == 404
+
+
+async def test_employee_sees_only_their_own_assigned_tasks(
+    client: AsyncClient, super_admin, program_manager, employee
+):
+    admin, admin_password = super_admin
+    manager, _ = program_manager
+    worker, worker_password = employee
+    admin_tokens = await login(client, admin.email, admin_password)
+    admin_headers = auth_header(admin_tokens["access_token"])
+    client_id = await _create_client(client, admin_headers)
+    project_id = await _create_project(client, admin_headers, client_id, manager.employee_id)
+
+    mine_response = await client.post("/api/v1/tasks", json=_task_payload(project_id), headers=admin_headers)
+    mine_task_id = mine_response.json()["task_id"]
+    theirs_response = await client.post("/api/v1/tasks", json=_task_payload(project_id), headers=admin_headers)
+    theirs_task_id = theirs_response.json()["task_id"]
+
+    await client.post(
+        "/api/v1/task-assignments",
+        json={"task_id": mine_task_id, "employee_id": worker.employee_id, "assigned_date": "2026-01-06"},
+        headers=admin_headers,
+    )
+
+    worker_tokens = await login(client, worker.email, worker_password)
+    worker_headers = auth_header(worker_tokens["access_token"])
+
+    response = await client.get("/api/v1/tasks/me", params={"project_id": project_id}, headers=worker_headers)
+    assert response.status_code == 200
+    body = response.json()
+    task_ids = {t["task_id"] for t in body}
+    assert task_ids == {mine_task_id}
+    assert theirs_task_id not in task_ids
+
+
+async def test_employee_can_update_status_of_own_task(client: AsyncClient, super_admin, program_manager, employee):
+    admin, admin_password = super_admin
+    manager, _ = program_manager
+    worker, worker_password = employee
+    admin_tokens = await login(client, admin.email, admin_password)
+    admin_headers = auth_header(admin_tokens["access_token"])
+    client_id = await _create_client(client, admin_headers)
+    project_id = await _create_project(client, admin_headers, client_id, manager.employee_id)
+
+    task_response = await client.post("/api/v1/tasks", json=_task_payload(project_id), headers=admin_headers)
+    task_id = task_response.json()["task_id"]
+    await client.post(
+        "/api/v1/task-assignments",
+        json={"task_id": task_id, "employee_id": worker.employee_id, "assigned_date": "2026-01-06"},
+        headers=admin_headers,
+    )
+
+    worker_tokens = await login(client, worker.email, worker_password)
+    worker_headers = auth_header(worker_tokens["access_token"])
+
+    response = await client.patch(
+        f"/api/v1/tasks/me/{task_id}", json={"status": "In Progress"}, headers=worker_headers
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "In Progress"
+    assert body["updated_by"] == worker.employee_id
+
+
+async def test_employee_cannot_update_status_of_unassigned_task(
+    client: AsyncClient, super_admin, program_manager, employee
+):
+    admin, admin_password = super_admin
+    manager, _ = program_manager
+    worker, worker_password = employee
+    admin_tokens = await login(client, admin.email, admin_password)
+    admin_headers = auth_header(admin_tokens["access_token"])
+    client_id = await _create_client(client, admin_headers)
+    project_id = await _create_project(client, admin_headers, client_id, manager.employee_id)
+
+    task_response = await client.post("/api/v1/tasks", json=_task_payload(project_id), headers=admin_headers)
+    task_id = task_response.json()["task_id"]
+
+    worker_tokens = await login(client, worker.email, worker_password)
+    worker_headers = auth_header(worker_tokens["access_token"])
+
+    response = await client.patch(
+        f"/api/v1/tasks/me/{task_id}", json={"status": "In Progress"}, headers=worker_headers
+    )
+    assert response.status_code == 403

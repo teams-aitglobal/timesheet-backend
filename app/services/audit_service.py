@@ -3,7 +3,10 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging import get_logger
 from app.models.audit_log import AuditLog
+
+logger = get_logger(__name__)
 
 
 class AuditAction:
@@ -55,5 +58,9 @@ async def create_audit_log(
     )
     db.add(log)
     await db.flush()
+
+    log_level = logger.warning if action == "LOGIN_FAILED" else logger.info
+    log_level("%s %s %s by %s", action, entity_type, entity_id, changed_by)
+
     return log
 

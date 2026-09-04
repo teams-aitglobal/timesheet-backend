@@ -2,11 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
+from app.dependencies.auth import get_current_user
 from app.dependencies.authorization import require_permission
 from app.models.project_assignment import ProjectAssignment
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
 from app.schemas.project_assignment import (
+    MyProjectAssignmentOut,
     ProjectAssignmentCreate,
     ProjectAssignmentOut,
     ProjectAssignmentUpdate,
@@ -62,6 +64,14 @@ async def list_project_assignments(
         skip=skip,
         limit=limit,
     )
+
+
+@router.get("/me", response_model=list[MyProjectAssignmentOut])
+async def list_my_project_assignments(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[MyProjectAssignmentOut]:
+    return await project_assignment_service.list_my_project_assignments(db, current_user.employee_id)
 
 
 @router.get("/{project_assignment_id}", response_model=ProjectAssignmentOut)

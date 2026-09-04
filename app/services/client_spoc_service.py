@@ -3,6 +3,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.client_spoc import ClientSpoc
+from app.models.enums import ClientSpocStatus
 from app.models.user import User
 from app.schemas.client_spoc import ClientSpocCreate, ClientSpocOut, ClientSpocUpdate
 from app.services import client_service
@@ -174,8 +175,8 @@ async def deactivate_client_spoc(
     ip_address: str | None = None,
     user_agent: str | None = None,
 ) -> ClientSpoc:
-    if spoc.status != "Inactive":
-        spoc.status = "Inactive"
+    if spoc.status != ClientSpocStatus.INACTIVE:
+        spoc.status = ClientSpocStatus.INACTIVE
         spoc.updated_by = actor.employee_id
         await create_audit_log(
             db,
@@ -183,8 +184,8 @@ async def deactivate_client_spoc(
             changed_by=actor.employee_id,
             entity_type="client_spoc",
             entity_id=spoc.client_spoc_id,
-            old_value={"status": "Active"},
-            new_value={"status": "Inactive"},
+            old_value={"status": ClientSpocStatus.ACTIVE.value},
+            new_value={"status": ClientSpocStatus.INACTIVE.value},
         )
         await db.commit()
         await db.refresh(spoc)

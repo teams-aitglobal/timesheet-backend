@@ -2,11 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
+from app.dependencies.auth import get_current_user
 from app.dependencies.authorization import require_permission
 from app.models.task import Task
 from app.models.user import User
+from app.models.enums import TaskStatus
 from app.schemas.common import PaginatedResponse
-from app.schemas.task import TaskCreate, TaskOut, TaskUpdate
+from app.schemas.task import MyTaskOut, MyTaskStatusUpdate, TaskCreate, TaskOut, TaskUpdate
 from app.services import task_service
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -43,7 +45,7 @@ async def create_task(
 @router.get("", response_model=PaginatedResponse[TaskOut])
 async def list_tasks(
     project_id: str | None = Query(default=None),
-    status_filter: str | None = Query(default=None, alias="status"),
+    status_filter: TaskStatus | None = Query(default=None, alias="status"),
     search: str | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=200),
@@ -54,6 +56,28 @@ async def list_tasks(
         db, project_id=project_id, status_filter=status_filter, search=search, skip=skip, limit=limit
     )
     return PaginatedResponse(items=[task_service.to_task_out(t) for t in tasks], total=total, skip=skip, limit=limit)
+
+
+@router.get("/me", response_model=list[MyTaskOut])
+async def list_my_tasks(
+    project_id: str | None = Query(default=None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[MyTaskOut]:
+    return await task_service.list_my_tasks(db, current_user.employee_id, project_id=project_id)
+
+
+@router.patch("/me/{task_id}", response_model=TaskOut)
+async def update_my_task_status(
+    task_id: str,
+    payload: MyTaskStatusUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TaskOut:
+    task = await task_service.update_my_task_status(
+        db, task_id, current_user.employee_id, payload.status, current_user
+    )
+    return task_service.to_task_out(task)
 
 
 @router.get("/{task_id}", response_model=TaskOut)

@@ -1,9 +1,8 @@
 from datetime import datetime
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-ClientStatus = Literal["Active", "Inactive"]
+from app.models.enums import ClientStatus
 
 
 class ClientCreate(BaseModel):
@@ -32,7 +31,7 @@ class ClientOut(BaseModel):
     phone: str | None
     industry: str | None
     description: str | None
-    status: str
+    status: ClientStatus
     created_at: datetime
     created_by: str
     updated_at: datetime | None

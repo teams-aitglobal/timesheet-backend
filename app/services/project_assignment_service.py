@@ -2,9 +2,11 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.project import Project
 from app.models.project_assignment import ProjectAssignment
 from app.models.user import User
 from app.schemas.project_assignment import (
+    MyProjectAssignmentOut,
     ProjectAssignmentCreate,
     ProjectAssignmentOut,
     ProjectAssignmentUpdate,
@@ -54,6 +56,33 @@ async def list_project_assignments(
     total = (await db.execute(count_query)).scalar_one()
     result = await db.execute(query.order_by(ProjectAssignment.created_at).offset(skip).limit(limit))
     return list(result.scalars().all()), total
+
+
+async def list_my_project_assignments(
+    db: AsyncSession, employee_id: str
+) -> list[MyProjectAssignmentOut]:
+    result = await db.execute(
+        select(ProjectAssignment, Project)
+        .join(Project, Project.project_id == ProjectAssignment.project_id)
+        .where(ProjectAssignment.employee_id == employee_id)
+        .order_by(ProjectAssignment.is_active.desc(), ProjectAssignment.start_date.desc())
+    )
+    return [
+        MyProjectAssignmentOut(
+            project_assignment_id=assignment.project_assignment_id,
+            project_id=project.project_id,
+            project_name=project.project_name,
+            project_status=project.status,
+            project_start_date=project.project_start_date,
+            project_end_date=project.project_end_date,
+            allocated_hours=assignment.allocated_hours,
+            start_date=assignment.start_date,
+            end_date=assignment.end_date,
+            is_active=assignment.is_active,
+            remarks=assignment.remarks,
+        )
+        for assignment, project in result.all()
+    ]
 
 
 async def _next_project_assignment_id(db: AsyncSession) -> str:

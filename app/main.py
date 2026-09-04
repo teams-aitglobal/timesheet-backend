@@ -1,14 +1,16 @@
-from collections.abc import AsyncIterator
+import time
+import uuid
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 import app.models
 from app.api.v1.router import api_router
 from app.core.config import settings
-from app.core.logging import configure_logging, get_logger
+from app.core.logging import configure_logging, get_logger, request_id_var
 from app.db.base import Base
 from app.db.session import AsyncSessionLocal, engine
 from app.scripts.seed_data import apply_seed_data
@@ -48,6 +50,28 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+    request_id = uuid.uuid4().hex
+    token = request_id_var.set(request_id)
+    start = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = (time.perf_counter() - start) * 1000
+        logger.exception("%s %s failed after %.1fms", request.method, request.url.path, duration_ms)
+        raise
+    else:
+        duration_ms = (time.perf_counter() - start) * 1000
+        logger.info(
+            "%s %s -> %s (%.1fms)", request.method, request.url.path, response.status_code, duration_ms
+        )
+        response.headers["X-Request-ID"] = request_id
+        return response
+    finally:
+        request_id_var.reset(token)
 
 
 @app.exception_handler(Exception)

@@ -19,5 +19,6 @@ htmlcov/
 .idea/
 
 *.log
+logs/
 
 docs/

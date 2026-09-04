@@ -2,6 +2,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.client import Client
+from app.models.enums import ClientStatus
 from app.models.user import User
 from app.schemas.client import ClientCreate, ClientOut, ClientUpdate
 from app.services.audit_service import AuditAction, create_audit_log
@@ -122,8 +123,8 @@ async def deactivate_client(
     ip_address: str | None = None,
     user_agent: str | None = None,
 ) -> Client:
-    if client.status != "Inactive":
-        client.status = "Inactive"
+    if client.status != ClientStatus.INACTIVE:
+        client.status = ClientStatus.INACTIVE
         client.updated_by = actor.employee_id
         await create_audit_log(
             db,
@@ -131,8 +132,8 @@ async def deactivate_client(
             changed_by=actor.employee_id,
             entity_type="client",
             entity_id=client.client_id,
-            old_value={"status": "Active"},
-            new_value={"status": "Inactive"},
+            old_value={"status": ClientStatus.ACTIVE.value},
+            new_value={"status": ClientStatus.INACTIVE.value},
         )
         await db.commit()
         await db.refresh(client)
