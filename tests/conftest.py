@@ -37,6 +37,7 @@ MUTABLE_TABLES = [
     "refresh_tokens",
     "task_assignments",
     "tasks",
+    "timesheets",
     "user_roles",
     "users",
 ]
@@ -135,6 +136,28 @@ async def employee(db_session: AsyncSession, roles_by_name: dict[str, Role]) -> 
     password = "EmployeeSecret123!"
     user = await _create_user(
         db_session, roles_by_name, email="employee@example.com", password=password, role_names=[EMPLOYEE]
+    )
+    return user, password
+
+
+@pytest.fixture
+async def other_employee(db_session: AsyncSession, roles_by_name: dict[str, Role]) -> tuple[User, str]:
+    password = "OtherEmployeeSecret123!"
+    user = await _create_user(
+        db_session, roles_by_name, email="other.employee@example.com", password=password, role_names=[EMPLOYEE]
+    )
+    return user, password
+
+
+@pytest.fixture
+async def other_program_manager(db_session: AsyncSession, roles_by_name: dict[str, Role]) -> tuple[User, str]:
+    password = "OtherManagerSecret123!"
+    user = await _create_user(
+        db_session,
+        roles_by_name,
+        email="other.manager@example.com",
+        password=password,
+        role_names=[PROGRAM_MANAGER],
     )
     return user, password
 

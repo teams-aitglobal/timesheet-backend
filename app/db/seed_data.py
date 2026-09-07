@@ -68,22 +68,19 @@ PERMISSIONS: dict[str, list[tuple[str, str, str]]] = {
         ("TASK_ASSIGNMENT_DEACTIVATE", "Deactivate task assignment", "Deactivate a task-employee assignment."),
     ],
     "TIMESHEETS": [
-        ("TIMESHEET_CREATE", "Create timesheet", "Create a timesheet entry. Reserved for a future phase."),
-        ("TIMESHEET_READ", "Read timesheet", "View timesheets. Reserved for a future phase."),
-        ("TIMESHEET_UPDATE", "Update timesheet", "Update a timesheet entry. Reserved for a future phase."),
-        ("TIMESHEET_SUBMIT", "Submit timesheet", "Submit a timesheet for approval. Reserved for a future phase."),
-        ("TIMESHEET_APPROVE", "Approve timesheet", "Approve a submitted timesheet. Reserved for a future phase."),
-        ("TIMESHEET_REJECT", "Reject timesheet", "Reject a submitted timesheet. Reserved for a future phase."),
+        ("TIMESHEET_CREATE", "Create timesheet", "Create a draft timesheet entry for yourself."),
+        ("TIMESHEET_READ", "Read timesheet", "View timesheet entries."),
+        ("TIMESHEET_UPDATE", "Update timesheet", "Edit or discard your own draft/rejected timesheet entries."),
+        ("TIMESHEET_SUBMIT", "Submit timesheet", "Submit a timesheet entry for approval."),
+        ("TIMESHEET_APPROVE", "Approve timesheet", "Approve a submitted timesheet entry."),
+        ("TIMESHEET_REJECT", "Reject timesheet", "Reject a submitted timesheet entry with a reason."),
     ],
 }
 
 # role name -> [permission codes]
-# TIMESHEET_* codes exist only so authorization is ready for the next phase -
-# no endpoint in this phase checks them. CLIENT_*, PROJECT_*,
-# PROJECT_ASSIGNMENT_*, TASK_*, and TASK_ASSIGNMENT_* codes, unlike those, are
-# enforced today by app/api/v1/clients.py, app/api/v1/projects.py,
-# app/api/v1/project_assignments.py, app/api/v1/tasks.py, and
-# app/api/v1/task_assignments.py.
+# All codes below are enforced today by app/api/v1/clients.py, app/api/v1/
+# projects.py, app/api/v1/project_assignments.py, app/api/v1/tasks.py,
+# app/api/v1/task_assignments.py, and app/api/v1/timesheets.py.
 ROLE_PERMISSIONS: dict[str, list[str]] = {
     SUPER_ADMIN: [
         "USER_CREATE",

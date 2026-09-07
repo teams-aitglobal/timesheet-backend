@@ -27,3 +27,16 @@ class TaskStatus(str, Enum):
     COMPLETED = "Completed"
     ON_HOLD = "On Hold"
     CANCELLED = "Cancelled"
+
+
+class TimesheetStatus(str, Enum):
+    DRAFT = "Draft"
+    SUBMITTED = "Submitted"
+    APPROVED = "Approved"
+    REJECTED = "Rejected"
+
+
+class WorkType(str, Enum):
+    ASSIGNED_TASK = "Assigned Task"
+    ADHOC = "Adhoc"
+    MEETING = "Meeting"

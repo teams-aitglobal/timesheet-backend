@@ -1,6 +1,5 @@
 import contextvars
 import logging
-import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -37,10 +36,6 @@ def configure_logging() -> None:
     )
     request_id_filter = _RequestIdFilter()
 
-    stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setFormatter(formatter)
-    stream_handler.addFilter(request_id_filter)
-
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     file_handler = RotatingFileHandler(
         LOG_DIR / "app.log",
@@ -52,8 +47,14 @@ def configure_logging() -> None:
     file_handler.addFilter(request_id_filter)
 
     root_logger.handlers.clear()
-    root_logger.addHandler(stream_handler)
     root_logger.addHandler(file_handler)
+
+    # Uvicorn attaches its own console handlers to these loggers; strip them
+    # so startup/access lines go to the file (via root) instead of the terminal.
+    for uvicorn_logger_name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        uvicorn_logger = logging.getLogger(uvicorn_logger_name)
+        uvicorn_logger.handlers.clear()
+        uvicorn_logger.propagate = True
 
     # Keep noisy third-party loggers at a sane level.
     logging.getLogger("uvicorn.access").setLevel(logging.INFO)

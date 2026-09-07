@@ -43,6 +43,7 @@ async def list_projects(
     *,
     client_id: str | None = None,
     project_manager_id: str | None = None,
+    status_filter: ProjectStatus | None = None,
     skip: int = 0,
     limit: int = 100,
 ) -> tuple[list[Project], int]:
@@ -54,6 +55,9 @@ async def list_projects(
     if project_manager_id is not None:
         query = query.where(Project.project_manager_id == project_manager_id)
         count_query = count_query.where(Project.project_manager_id == project_manager_id)
+    if status_filter is not None:
+        query = query.where(Project.status == status_filter)
+        count_query = count_query.where(Project.status == status_filter)
 
     total = (await db.execute(count_query)).scalar_one()
     result = await db.execute(query.order_by(Project.created_at).offset(skip).limit(limit))
