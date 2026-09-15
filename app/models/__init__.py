@@ -9,6 +9,7 @@ from app.models.role import Role
 from app.models.role_permission import RolePermission
 from app.models.task import Task
 from app.models.task_assignment import TaskAssignment
+from app.models.timesheet import Timesheet
 from app.models.user import User
 from app.models.user_role import UserRole
 
@@ -24,6 +25,7 @@ __all__ = [
     "RolePermission",
     "Task",
     "TaskAssignment",
+    "Timesheet",
     "User",
     "UserRole",
 ]

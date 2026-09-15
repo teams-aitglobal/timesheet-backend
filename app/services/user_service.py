@@ -5,6 +5,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import generate_temporary_password, hash_password
+from app.models.enums import UserStatus
 from app.models.user import User
 from app.schemas.user import UserCreate, UserOut, UserUpdate
 from app.services import role_service
@@ -203,8 +204,8 @@ async def deactivate_user(
     ip_address: str | None = None,
     user_agent: str | None = None,
 ) -> User:
-    if user.status != "Inactive":
-        user.status = "Inactive"
+    if user.status != UserStatus.INACTIVE:
+        user.status = UserStatus.INACTIVE
         user.updated_by = actor.employee_id
         await create_audit_log(
             db,
@@ -212,8 +213,8 @@ async def deactivate_user(
             changed_by=actor.employee_id,
             entity_type="user",
             entity_id=user.employee_id,
-            old_value={"status": "Active"},
-            new_value={"status": "Inactive"},
+            old_value={"status": UserStatus.ACTIVE.value},
+            new_value={"status": UserStatus.INACTIVE.value},
         )
         await db.commit()
         await db.refresh(user)

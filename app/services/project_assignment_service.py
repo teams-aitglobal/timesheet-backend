@@ -2,9 +2,11 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.project import Project
 from app.models.project_assignment import ProjectAssignment
 from app.models.user import User
 from app.schemas.project_assignment import (
+    MyProjectAssignmentOut,
     ProjectAssignmentCreate,
     ProjectAssignmentOut,
     ProjectAssignmentUpdate,
@@ -13,6 +15,19 @@ from app.services import project_service, user_service
 from app.services.audit_service import AuditAction, create_audit_log
 
 _TRACKED_FIELDS = ("allocated_hours", "start_date", "end_date", "is_active", "remarks")
+
+
+def _validate_within_project_dates(project: Project, start_date, end_date) -> None:
+    if start_date < project.project_start_date:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="start_date cannot be before the project's start date.",
+        )
+    if project.project_end_date is not None and (end_date or start_date) > project.project_end_date:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Assignment dates cannot extend beyond the project's end date.",
+        )
 
 
 def to_project_assignment_out(assignment: ProjectAssignment) -> ProjectAssignmentOut:
@@ -56,6 +71,33 @@ async def list_project_assignments(
     return list(result.scalars().all()), total
 
 
+async def list_my_project_assignments(
+    db: AsyncSession, employee_id: str
+) -> list[MyProjectAssignmentOut]:
+    result = await db.execute(
+        select(ProjectAssignment, Project)
+        .join(Project, Project.project_id == ProjectAssignment.project_id)
+        .where(ProjectAssignment.employee_id == employee_id)
+        .order_by(ProjectAssignment.is_active.desc(), ProjectAssignment.start_date.desc())
+    )
+    return [
+        MyProjectAssignmentOut(
+            project_assignment_id=assignment.project_assignment_id,
+            project_id=project.project_id,
+            project_name=project.project_name,
+            project_status=project.status,
+            project_start_date=project.project_start_date,
+            project_end_date=project.project_end_date,
+            allocated_hours=assignment.allocated_hours,
+            start_date=assignment.start_date,
+            end_date=assignment.end_date,
+            is_active=assignment.is_active,
+            remarks=assignment.remarks,
+        )
+        for assignment, project in result.all()
+    ]
+
+
 async def _next_project_assignment_id(db: AsyncSession) -> str:
     total = (await db.execute(select(func.count()).select_from(ProjectAssignment))).scalar_one()
     return f"PA{total + 1:04d}"
@@ -69,10 +111,12 @@ async def create_project_assignment(
     ip_address: str | None = None,
     user_agent: str | None = None,
 ) -> ProjectAssignment:
-    if await project_service.get_project_by_id(db, data.project_id) is None:
+    project = await project_service.get_project_by_id(db, data.project_id)
+    if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
     if await user_service.get_user_by_id(db, data.employee_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found.")
+    _validate_within_project_dates(project, data.start_date, data.end_date)
 
     assignment = ProjectAssignment(
         project_assignment_id=await _next_project_assignment_id(db),
@@ -120,6 +164,10 @@ async def update_project_assignment(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="end_date cannot be before start_date.",
         )
+    if "start_date" in changes or "end_date" in changes:
+        project = await project_service.get_project_by_id(db, assignment.project_id)
+        if project is not None:
+            _validate_within_project_dates(project, new_start, new_end)
 
     old_values = _snapshot(assignment)
 

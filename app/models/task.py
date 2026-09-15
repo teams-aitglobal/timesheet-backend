@@ -1,9 +1,10 @@
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, func
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.models.enums import TaskStatus
 
 
 class Task(Base):
@@ -16,7 +17,13 @@ class Task(Base):
     planned_hours: Mapped[float | None] = mapped_column(Numeric(10, 2, asdecimal=False), nullable=True)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="Not Started", server_default="Not Started")
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    status: Mapped[TaskStatus] = mapped_column(
+        Enum(TaskStatus, name="task_status", native_enum=False, create_constraint=True, values_callable=lambda e: [m.value for m in e]),
+        nullable=False,
+        default=TaskStatus.NOT_STARTED,
+        server_default=TaskStatus.NOT_STARTED.value,
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     created_by: Mapped[str] = mapped_column(String, ForeignKey("users.employee_id"), nullable=False, index=True)
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, onupdate=func.now())

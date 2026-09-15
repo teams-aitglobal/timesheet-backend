@@ -28,10 +28,10 @@ async def test_employee_denied_user_create(client: AsyncClient, employee, db_ses
     assert response.status_code == 403
 
 
-async def test_program_manager_denied_user_create_by_default(
-    client: AsyncClient, program_manager, db_session: AsyncSession
+async def test_project_manager_denied_user_create_by_default(
+    client: AsyncClient, project_manager, db_session: AsyncSession
 ):
-    user, password = program_manager
+    user, password = project_manager
     tokens = await login(client, user.email, password)
     role_id = await _role_id(db_session, EMPLOYEE)
 
@@ -70,10 +70,10 @@ async def test_employee_denied_role_assign(client: AsyncClient, employee, db_ses
 
 
 async def test_super_admin_allowed_role_assign(
-    client: AsyncClient, super_admin, program_manager, db_session: AsyncSession
+    client: AsyncClient, super_admin, project_manager, db_session: AsyncSession
 ):
     admin, admin_password = super_admin
-    target, _ = program_manager
+    target, _ = project_manager
     tokens = await login(client, admin.email, admin_password)
     role_id = await _role_id(db_session, EMPLOYEE)
 
@@ -83,16 +83,16 @@ async def test_super_admin_allowed_role_assign(
         headers=auth_header(tokens["access_token"]),
     )
     assert response.status_code == 200
-    assert set(response.json()["roles"]) == {"PROGRAM_MANAGER", "EMPLOYEE"}
+    assert set(response.json()["roles"]) == {"PROJECT_MANAGER", "EMPLOYEE"}
 
 
-async def test_only_super_admin_can_assign_super_admin_role(program_manager, super_admin):
-    pm_user, _ = program_manager
+async def test_only_super_admin_can_assign_super_admin_role(project_manager, super_admin):
+    pm_user, _ = project_manager
     admin_user, _ = super_admin
     super_admin_role = Role(name=SUPER_ADMIN)
 
     with pytest.raises(HTTPException) as exc_info:
-        role_service.assert_can_assign_roles(pm_user, {"PROGRAM_MANAGER"}, [super_admin_role])
+        role_service.assert_can_assign_roles(pm_user, {"PROJECT_MANAGER"}, [super_admin_role])
     assert exc_info.value.status_code == 403
 
     # Should not raise for an actor who holds SUPER_ADMIN.

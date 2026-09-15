@@ -35,9 +35,9 @@ def _assignment_payload(project_id: str, employee_id: str) -> dict:
     }
 
 
-async def test_super_admin_creates_project_assignment(client: AsyncClient, super_admin, program_manager, employee):
+async def test_super_admin_creates_project_assignment(client: AsyncClient, super_admin, project_manager, employee):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, _ = employee
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
@@ -75,10 +75,10 @@ async def test_create_assignment_for_nonexistent_project_returns_404(
 
 
 async def test_create_assignment_for_nonexistent_employee_returns_404(
-    client: AsyncClient, super_admin, program_manager
+    client: AsyncClient, super_admin, project_manager
 ):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
     client_id = await _create_client(client, headers)
@@ -93,10 +93,10 @@ async def test_create_assignment_for_nonexistent_employee_returns_404(
 
 
 async def test_create_assignment_end_date_before_start_date_rejected(
-    client: AsyncClient, super_admin, program_manager, employee
+    client: AsyncClient, super_admin, project_manager, employee
 ):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, _ = employee
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
@@ -132,10 +132,10 @@ async def test_employee_cannot_create_assignment(client: AsyncClient, employee):
 
 
 async def test_list_project_assignments_paginated(
-    client: AsyncClient, super_admin, program_manager, employee
+    client: AsyncClient, super_admin, project_manager, employee
 ):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, _ = employee
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
@@ -156,9 +156,9 @@ async def test_list_project_assignments_paginated(
     assert len(body["items"]) == 2
 
 
-async def test_update_project_assignment(client: AsyncClient, super_admin, program_manager, employee):
+async def test_update_project_assignment(client: AsyncClient, super_admin, project_manager, employee):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, _ = employee
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
@@ -184,9 +184,9 @@ async def test_update_project_assignment(client: AsyncClient, super_admin, progr
     assert body["updated_by"] == admin.employee_id
 
 
-async def test_deactivate_project_assignment(client: AsyncClient, super_admin, program_manager, employee):
+async def test_deactivate_project_assignment(client: AsyncClient, super_admin, project_manager, employee):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, _ = employee
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])

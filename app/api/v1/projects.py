@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.dependencies.authorization import require_permission
+from app.models.enums import ProjectStatus
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
@@ -44,13 +45,19 @@ async def create_project(
 async def list_projects(
     client_id: str | None = Query(default=None),
     project_manager_id: str | None = Query(default=None),
+    status_filter: ProjectStatus | None = Query(default=None, alias="status"),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=200),
     current_user: User = Depends(require_permission("PROJECT_READ")),
     db: AsyncSession = Depends(get_db),
 ) -> PaginatedResponse[ProjectOut]:
     projects, total = await project_service.list_projects(
-        db, client_id=client_id, project_manager_id=project_manager_id, skip=skip, limit=limit
+        db,
+        client_id=client_id,
+        project_manager_id=project_manager_id,
+        status_filter=status_filter,
+        skip=skip,
+        limit=limit,
     )
     return PaginatedResponse(
         items=[project_service.to_project_out(p) for p in projects], total=total, skip=skip, limit=limit

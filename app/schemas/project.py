@@ -1,9 +1,8 @@
 from datetime import date, datetime
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-ProjectStatus = Literal["Active", "Inactive"]
+from app.models.enums import ProjectStatus
 
 
 class ProjectCreate(BaseModel):
@@ -56,7 +55,7 @@ class ProjectOut(BaseModel):
     project_end_date: date | None
     project_description: str | None
     budget_hours: float | None
-    status: str
+    status: ProjectStatus
     created_at: datetime
     created_by: str
     updated_at: datetime | None

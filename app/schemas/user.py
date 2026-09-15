@@ -1,10 +1,9 @@
 import uuid
 from datetime import date, datetime
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-UserStatus = Literal["Active", "Inactive"]
+from app.models.enums import UserStatus
 
 
 class UserCreate(BaseModel):
@@ -43,7 +42,7 @@ class UserOut(BaseModel):
     designation_id: str | None
     date_of_joining: date | None
     description: str | None
-    status: str
+    status: UserStatus
     is_verified: bool
     must_change_password: bool
     created_at: datetime

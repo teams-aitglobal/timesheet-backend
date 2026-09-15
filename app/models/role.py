@@ -10,7 +10,7 @@ from app.db.base import Base
 # Well-known role names. Roles are still database records (seeded via migration) —
 # these constants exist only so application code doesn't sprinkle raw strings around.
 SUPER_ADMIN = "SUPER_ADMIN"
-PROGRAM_MANAGER = "PROGRAM_MANAGER"
+PROJECT_MANAGER = "PROJECT_MANAGER"
 EMPLOYEE = "EMPLOYEE"
 
 

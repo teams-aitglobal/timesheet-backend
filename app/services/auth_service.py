@@ -13,6 +13,7 @@ from app.core.security import (
     refresh_token_expiry,
     verify_password,
 )
+from app.models.enums import UserStatus
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.services.audit_service import AuditAction, create_audit_log
@@ -71,7 +72,7 @@ async def login(
         await db.commit()
         raise INVALID_CREDENTIALS
 
-    if user.status != "Active":
+    if user.status != UserStatus.ACTIVE:
         await create_audit_log(
             db,
             action=AuditAction.LOGIN_FAILED,
@@ -116,7 +117,7 @@ async def refresh_session(
         raise INVALID_REFRESH_TOKEN
 
     user = await get_user_by_id(db, stored_token.user_id)
-    if user is None or user.status != "Active":
+    if user is None or user.status != UserStatus.ACTIVE:
         raise INVALID_REFRESH_TOKEN
 
     # Rotate: revoke the presented token and issue a brand new pair.

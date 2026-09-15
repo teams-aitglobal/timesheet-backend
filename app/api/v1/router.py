@@ -4,11 +4,14 @@ from app.api.v1 import (
     auth,
     client_spocs,
     clients,
+    dashboard,
     project_assignments,
     projects,
+    reports,
     roles,
     task_assignments,
     tasks,
+    timesheets,
     users,
 )
 
@@ -22,3 +25,6 @@ api_router.include_router(projects.router)
 api_router.include_router(project_assignments.router)
 api_router.include_router(tasks.router)
 api_router.include_router(task_assignments.router)
+api_router.include_router(timesheets.router)
+api_router.include_router(dashboard.router)
+api_router.include_router(reports.router)

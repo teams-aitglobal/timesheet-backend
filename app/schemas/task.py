@@ -1,9 +1,8 @@
 from datetime import date, datetime
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-TaskStatus = Literal["Not Started", "In Progress", "Completed", "On Hold", "Cancelled"]
+from app.models.enums import TaskStatus
 
 
 class TaskCreate(BaseModel):
@@ -46,8 +45,26 @@ class TaskOut(BaseModel):
     planned_hours: float | None
     start_date: date
     due_date: date | None
-    status: str
+    status: TaskStatus
     created_at: datetime
     created_by: str
     updated_at: datetime | None
     updated_by: str | None
+
+
+class MyTaskOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    task_id: str
+    project_id: str
+    task_assignment_id: str
+    task_name: str
+    task_description: str | None
+    planned_hours: float | None
+    start_date: date
+    due_date: date | None
+    status: TaskStatus
+
+
+class MyTaskStatusUpdate(BaseModel):
+    status: TaskStatus

@@ -1,10 +1,14 @@
+from datetime import datetime, timezone
+
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.enums import TaskStatus
 from app.models.task import Task
+from app.models.task_assignment import TaskAssignment
 from app.models.user import User
-from app.schemas.task import TaskCreate, TaskOut, TaskUpdate
+from app.schemas.task import MyTaskOut, TaskCreate, TaskOut, TaskUpdate
 from app.services import project_service
 from app.services.audit_service import AuditAction, create_audit_log
 
@@ -15,6 +19,7 @@ _TRACKED_FIELDS = (
     "start_date",
     "due_date",
     "status",
+    "completed_at",
 )
 
 
@@ -24,7 +29,7 @@ def to_task_out(task: Task) -> TaskOut:
 
 def _snapshot(task: Task) -> dict:
     snapshot = {field: getattr(task, field) for field in _TRACKED_FIELDS}
-    for date_field in ("start_date", "due_date"):
+    for date_field in ("start_date", "due_date", "completed_at"):
         if snapshot[date_field] is not None:
             snapshot[date_field] = snapshot[date_field].isoformat()
     return snapshot
@@ -39,7 +44,7 @@ async def list_tasks(
     db: AsyncSession,
     *,
     project_id: str | None = None,
-    status_filter: str | None = None,
+    status_filter: TaskStatus | None = None,
     search: str | None = None,
     skip: int = 0,
     limit: int = 100,
@@ -60,6 +65,61 @@ async def list_tasks(
     total = (await db.execute(count_query)).scalar_one()
     result = await db.execute(query.order_by(Task.created_at).offset(skip).limit(limit))
     return list(result.scalars().all()), total
+
+
+async def list_my_tasks(
+    db: AsyncSession, employee_id: str, project_id: str | None = None
+) -> list[MyTaskOut]:
+    query = (
+        select(Task, TaskAssignment)
+        .join(TaskAssignment, TaskAssignment.task_id == Task.task_id)
+        .where(TaskAssignment.employee_id == employee_id, TaskAssignment.is_active.is_(True))
+        .order_by(Task.start_date.desc())
+    )
+    if project_id is not None:
+        query = query.where(Task.project_id == project_id)
+
+    result = await db.execute(query)
+    return [
+        MyTaskOut(
+            task_id=task.task_id,
+            project_id=task.project_id,
+            task_assignment_id=assignment.task_assignment_id,
+            task_name=task.task_name,
+            task_description=task.task_description,
+            planned_hours=task.planned_hours,
+            start_date=task.start_date,
+            due_date=task.due_date,
+            status=task.status,
+        )
+        for task, assignment in result.all()
+    ]
+
+
+async def update_my_task_status(
+    db: AsyncSession,
+    task_id: str,
+    employee_id: str,
+    new_status: TaskStatus,
+    actor: User,
+) -> Task:
+    task = await get_task_by_id(db, task_id)
+    if task is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found.")
+
+    assignment_result = await db.execute(
+        select(TaskAssignment).where(
+            TaskAssignment.task_id == task_id,
+            TaskAssignment.employee_id == employee_id,
+            TaskAssignment.is_active.is_(True),
+        )
+    )
+    if assignment_result.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="You are not assigned to this task."
+        )
+
+    return await update_task(db, task, TaskUpdate(status=new_status), actor)
 
 
 async def _next_task_id(db: AsyncSession) -> str:
@@ -125,9 +185,16 @@ async def update_task(
         )
 
     old_values = _snapshot(task)
+    old_status = task.status
 
     for field, value in changes.items():
         setattr(task, field, value)
+
+    if "status" in changes:
+        if task.status == TaskStatus.COMPLETED and old_status != TaskStatus.COMPLETED:
+            task.completed_at = datetime.now(timezone.utc)
+        elif old_status == TaskStatus.COMPLETED and task.status != TaskStatus.COMPLETED:
+            task.completed_at = None
 
     if changes:
         task.updated_by = actor.employee_id
@@ -154,9 +221,9 @@ async def cancel_task(
     ip_address: str | None = None,
     user_agent: str | None = None,
 ) -> Task:
-    if task.status != "Cancelled":
+    if task.status != TaskStatus.CANCELLED:
         old_status = task.status
-        task.status = "Cancelled"
+        task.status = TaskStatus.CANCELLED
         task.updated_by = actor.employee_id
         await create_audit_log(
             db,
@@ -164,8 +231,8 @@ async def cancel_task(
             changed_by=actor.employee_id,
             entity_type="task",
             entity_id=task.task_id,
-            old_value={"status": old_status},
-            new_value={"status": "Cancelled"},
+            old_value={"status": old_status.value},
+            new_value={"status": TaskStatus.CANCELLED.value},
         )
         await db.commit()
         await db.refresh(task)

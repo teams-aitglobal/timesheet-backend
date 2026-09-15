@@ -2,6 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.enums import ProjectStatus
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.project import ProjectCreate, ProjectOut, ProjectUpdate
@@ -42,6 +43,7 @@ async def list_projects(
     *,
     client_id: str | None = None,
     project_manager_id: str | None = None,
+    status_filter: ProjectStatus | None = None,
     skip: int = 0,
     limit: int = 100,
 ) -> tuple[list[Project], int]:
@@ -53,6 +55,9 @@ async def list_projects(
     if project_manager_id is not None:
         query = query.where(Project.project_manager_id == project_manager_id)
         count_query = count_query.where(Project.project_manager_id == project_manager_id)
+    if status_filter is not None:
+        query = query.where(Project.status == status_filter)
+        count_query = count_query.where(Project.status == status_filter)
 
     total = (await db.execute(count_query)).scalar_one()
     result = await db.execute(query.order_by(Project.created_at).offset(skip).limit(limit))
@@ -174,8 +179,8 @@ async def deactivate_project(
     ip_address: str | None = None,
     user_agent: str | None = None,
 ) -> Project:
-    if project.status != "Inactive":
-        project.status = "Inactive"
+    if project.status != ProjectStatus.INACTIVE:
+        project.status = ProjectStatus.INACTIVE
         project.updated_by = actor.employee_id
         await create_audit_log(
             db,
@@ -183,8 +188,8 @@ async def deactivate_project(
             changed_by=actor.employee_id,
             entity_type="project",
             entity_id=project.project_id,
-            old_value={"status": "Active"},
-            new_value={"status": "Inactive"},
+            old_value={"status": ProjectStatus.ACTIVE.value},
+            new_value={"status": ProjectStatus.INACTIVE.value},
         )
         await db.commit()
         await db.refresh(project)

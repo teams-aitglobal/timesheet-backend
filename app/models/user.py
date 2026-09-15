@@ -1,9 +1,10 @@
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, func
+from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.models.enums import UserStatus
 
 
 class User(Base):
@@ -18,7 +19,12 @@ class User(Base):
     designation_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     date_of_joining: Mapped[date | None] = mapped_column(Date, nullable=True)
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    status: Mapped[str] = mapped_column(String, nullable=False, default="Active", server_default="Active")
+    status: Mapped[UserStatus] = mapped_column(
+        Enum(UserStatus, name="user_status", native_enum=False, create_constraint=True, values_callable=lambda e: [m.value for m in e]),
+        nullable=False,
+        default=UserStatus.ACTIVE,
+        server_default=UserStatus.ACTIVE.value,
+    )
     is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     must_change_password: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default="true"

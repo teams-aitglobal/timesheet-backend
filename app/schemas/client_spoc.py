@@ -1,9 +1,8 @@
 from datetime import datetime
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-ClientSpocStatus = Literal["Active", "Inactive"]
+from app.models.enums import ClientSpocStatus
 
 
 class ClientSpocCreate(BaseModel):
@@ -34,7 +33,7 @@ class ClientSpocOut(BaseModel):
     phone: str
     designation: str | None
     is_primary: bool
-    status: str
+    status: ClientSpocStatus
     created_at: datetime
     created_by: str
     updated_at: datetime | None
