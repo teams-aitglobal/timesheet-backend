@@ -6,12 +6,12 @@ data can be re-applied manually without restarting the app). Kept as plain
 data - no ORM/session code - so both call sites can use it safely.
 """
 
-from app.models.role import EMPLOYEE, PROGRAM_MANAGER, SUPER_ADMIN
+from app.models.role import EMPLOYEE, PROJECT_MANAGER, SUPER_ADMIN
 
 ROLES: list[dict] = [
     {"name": SUPER_ADMIN, "description": "Full administrative access. Manages users, roles, and permissions."},
     {
-        "name": PROGRAM_MANAGER,
+        "name": PROJECT_MANAGER,
         "description": "Manages projects and employee assignments; reviews and approves timesheets.",
     },
     {"name": EMPLOYEE, "description": "Submits and manages their own timesheets."},
@@ -116,9 +116,17 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         "TASK_ASSIGNMENT_UPDATE",
         "TASK_ASSIGNMENT_DEACTIVATE",
     ],
-    PROGRAM_MANAGER: [
+    PROJECT_MANAGER: [
         "USER_READ",
         "ROLE_READ",
+        "CLIENT_CREATE",
+        "CLIENT_READ",
+        "CLIENT_UPDATE",
+        "CLIENT_DEACTIVATE",
+        "CLIENT_SPOC_CREATE",
+        "CLIENT_SPOC_READ",
+        "CLIENT_SPOC_UPDATE",
+        "CLIENT_SPOC_DEACTIVATE",
         "PROJECT_CREATE",
         "PROJECT_READ",
         "PROJECT_UPDATE",

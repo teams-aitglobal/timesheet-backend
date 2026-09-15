@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.role import PROGRAM_MANAGER, SUPER_ADMIN
+from app.models.role import PROJECT_MANAGER, SUPER_ADMIN
 from app.models.user import User
 from app.schemas.dashboard import (
     AdminDashboardOut,
@@ -60,6 +60,6 @@ async def get_dashboard(
     role_names = _role_names(user)
     if SUPER_ADMIN in role_names:
         return await _build_admin_dashboard(db, user)
-    if PROGRAM_MANAGER in role_names:
+    if PROJECT_MANAGER in role_names:
         return await _build_manager_dashboard(db, user)
     return await _build_employee_dashboard(db, user)

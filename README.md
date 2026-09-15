@@ -84,7 +84,7 @@ Postgres 14+ instance).
   a deliberate simplicity tradeoff for early development; before this app
   holds real production data, reintroduce a migration tool so schema changes
   can be applied safely.
-- **PROGRAM_MANAGER / EMPLOYEE permission grants** are a reasonable default
+- **PROJECT_MANAGER / EMPLOYEE permission grants** are a reasonable default
   for their future responsibilities (project/timesheet read & approval for
   PM; timesheet CRUD for EMPLOYEE) even though those endpoints don't exist
   yet in this phase - the permission codes and grants are prepared per

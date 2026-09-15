@@ -1,8 +1,10 @@
+from datetime import date, timedelta
+
 from httpx import AsyncClient
 
 from .conftest import auth_header, login
 
-_WORK_DATE = "2026-01-06"
+_WORK_DATE = (date.today() - timedelta(days=1)).isoformat()
 
 
 async def _create_client_org(client: AsyncClient, headers: dict) -> str:
@@ -62,9 +64,9 @@ async def _create_submitted_timesheet(
     return timesheet_id
 
 
-async def _setup(client: AsyncClient, super_admin, program_manager, employee, budget_hours: float | None = None):
+async def _setup(client: AsyncClient, super_admin, project_manager, employee, budget_hours: float | None = None):
     admin, admin_password = super_admin
-    manager, manager_password = program_manager
+    manager, manager_password = project_manager
     emp, emp_password = employee
 
     admin_tokens = await login(client, admin.email, admin_password)
@@ -82,8 +84,8 @@ async def _setup(client: AsyncClient, super_admin, program_manager, employee, bu
     return project_id, admin_headers, manager_headers, emp_headers
 
 
-async def test_employee_timesheet_report_scoped_to_self(client: AsyncClient, super_admin, program_manager, employee):
-    project_id, _, _, emp_headers = await _setup(client, super_admin, program_manager, employee)
+async def test_employee_timesheet_report_scoped_to_self(client: AsyncClient, super_admin, project_manager, employee):
+    project_id, _, _, emp_headers = await _setup(client, super_admin, project_manager, employee)
     timesheet_id = await _create_submitted_timesheet(client, emp_headers, project_id)
 
     response = await client.get("/api/v1/reports/timesheets", headers=emp_headers)
@@ -94,8 +96,8 @@ async def test_employee_timesheet_report_scoped_to_self(client: AsyncClient, sup
     assert body["items"][0]["project_name"] == "Website Revamp"
 
 
-async def test_manager_timesheet_report_sees_own_projects(client: AsyncClient, super_admin, program_manager, employee):
-    project_id, _, manager_headers, emp_headers = await _setup(client, super_admin, program_manager, employee)
+async def test_manager_timesheet_report_sees_own_projects(client: AsyncClient, super_admin, project_manager, employee):
+    project_id, _, manager_headers, emp_headers = await _setup(client, super_admin, project_manager, employee)
     await _create_submitted_timesheet(client, emp_headers, project_id)
 
     response = await client.get("/api/v1/reports/timesheets", headers=manager_headers)
@@ -103,8 +105,8 @@ async def test_manager_timesheet_report_sees_own_projects(client: AsyncClient, s
     assert response.json()["total"] == 1
 
 
-async def test_timesheet_report_csv_export(client: AsyncClient, super_admin, program_manager, employee):
-    project_id, _, _, emp_headers = await _setup(client, super_admin, program_manager, employee)
+async def test_timesheet_report_csv_export(client: AsyncClient, super_admin, project_manager, employee):
+    project_id, _, _, emp_headers = await _setup(client, super_admin, project_manager, employee)
     await _create_submitted_timesheet(client, emp_headers, project_id)
 
     response = await client.get("/api/v1/reports/timesheets", params={"format": "csv"}, headers=emp_headers)
@@ -114,10 +116,10 @@ async def test_timesheet_report_csv_export(client: AsyncClient, super_admin, pro
 
 
 async def test_project_hours_report_includes_approved_hours(
-    client: AsyncClient, super_admin, program_manager, employee
+    client: AsyncClient, super_admin, project_manager, employee
 ):
     project_id, admin_headers, manager_headers, emp_headers = await _setup(
-        client, super_admin, program_manager, employee, budget_hours=100
+        client, super_admin, project_manager, employee, budget_hours=100
     )
     timesheet_id = await _create_submitted_timesheet(client, emp_headers, project_id, hours=6.0)
     approve_response = await client.post(f"/api/v1/timesheets/{timesheet_id}/approve", headers=manager_headers)
@@ -132,8 +134,8 @@ async def test_project_hours_report_includes_approved_hours(
     assert rows[0]["remaining_hours"] == 94.0
 
 
-async def test_project_hours_report_forbidden_for_employee(client: AsyncClient, super_admin, program_manager, employee):
-    _, _, _, emp_headers = await _setup(client, super_admin, program_manager, employee)
+async def test_project_hours_report_forbidden_for_employee(client: AsyncClient, super_admin, project_manager, employee):
+    _, _, _, emp_headers = await _setup(client, super_admin, project_manager, employee)
 
     response = await client.get("/api/v1/reports/project-hours", headers=emp_headers)
     assert response.status_code == 403

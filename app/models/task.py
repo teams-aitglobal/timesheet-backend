@@ -17,6 +17,7 @@ class Task(Base):
     planned_hours: Mapped[float | None] = mapped_column(Numeric(10, 2, asdecimal=False), nullable=True)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     status: Mapped[TaskStatus] = mapped_column(
         Enum(TaskStatus, name="task_status", native_enum=False, create_constraint=True, values_callable=lambda e: [m.value for m in e]),
         nullable=False,

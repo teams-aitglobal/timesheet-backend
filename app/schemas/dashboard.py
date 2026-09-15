@@ -45,7 +45,7 @@ class ManagerProjectSummary(BaseModel):
 
 
 class ManagerDashboardOut(BaseModel):
-    role: Literal["PROGRAM_MANAGER"] = "PROGRAM_MANAGER"
+    role: Literal["PROJECT_MANAGER"] = "PROJECT_MANAGER"
     my_projects: int
     clients: int
     team_members: int

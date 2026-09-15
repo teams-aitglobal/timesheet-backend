@@ -30,6 +30,15 @@ async def project_names_by_id(db: AsyncSession, project_ids: set[str]) -> dict[s
     return dict(result.all())
 
 
+async def project_client_ids_by_id(db: AsyncSession, project_ids: set[str]) -> dict[str, str]:
+    if not project_ids:
+        return {}
+    result = await db.execute(
+        select(Project.project_id, Project.client_id).where(Project.project_id.in_(project_ids))
+    )
+    return dict(result.all())
+
+
 async def task_names_by_id(db: AsyncSession, task_ids: set[str]) -> dict[str, str]:
     if not task_ids:
         return {}

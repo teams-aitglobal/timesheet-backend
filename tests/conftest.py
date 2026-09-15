@@ -14,7 +14,7 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 from app.models import *
-from app.models.role import EMPLOYEE, PROGRAM_MANAGER, SUPER_ADMIN, Role
+from app.models.role import EMPLOYEE, PROJECT_MANAGER, SUPER_ADMIN, Role
 from app.models.user import User
 from app.models.user_role import UserRole
 from app.scripts.seed_data import apply_seed_data
@@ -119,14 +119,14 @@ async def super_admin(db_session: AsyncSession, roles_by_name: dict[str, Role]) 
 
 
 @pytest.fixture
-async def program_manager(db_session: AsyncSession, roles_by_name: dict[str, Role]) -> tuple[User, str]:
+async def project_manager(db_session: AsyncSession, roles_by_name: dict[str, Role]) -> tuple[User, str]:
     password = "ManagerSecret123!"
     user = await _create_user(
         db_session,
         roles_by_name,
         email="manager@example.com",
         password=password,
-        role_names=[PROGRAM_MANAGER],
+        role_names=[PROJECT_MANAGER],
     )
     return user, password
 
@@ -150,14 +150,14 @@ async def other_employee(db_session: AsyncSession, roles_by_name: dict[str, Role
 
 
 @pytest.fixture
-async def other_program_manager(db_session: AsyncSession, roles_by_name: dict[str, Role]) -> tuple[User, str]:
+async def other_project_manager(db_session: AsyncSession, roles_by_name: dict[str, Role]) -> tuple[User, str]:
     password = "OtherManagerSecret123!"
     user = await _create_user(
         db_session,
         roles_by_name,
         email="other.manager@example.com",
         password=password,
-        role_names=[PROGRAM_MANAGER],
+        role_names=[PROJECT_MANAGER],
     )
     return user, password
 

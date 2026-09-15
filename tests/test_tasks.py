@@ -36,9 +36,9 @@ def _task_payload(project_id: str) -> dict:
     }
 
 
-async def test_super_admin_creates_task(client: AsyncClient, super_admin, program_manager):
+async def test_super_admin_creates_task(client: AsyncClient, super_admin, project_manager):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
     client_id = await _create_client(client, headers)
@@ -64,10 +64,10 @@ async def test_create_task_for_nonexistent_project_returns_404(client: AsyncClie
 
 
 async def test_create_task_due_date_before_start_date_rejected(
-    client: AsyncClient, super_admin, program_manager
+    client: AsyncClient, super_admin, project_manager
 ):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
     client_id = await _create_client(client, headers)
@@ -94,9 +94,9 @@ async def test_employee_cannot_create_task(client: AsyncClient, employee):
     assert response.status_code == 403
 
 
-async def test_employee_can_read_tasks(client: AsyncClient, super_admin, program_manager, employee):
+async def test_employee_can_read_tasks(client: AsyncClient, super_admin, project_manager, employee):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
     client_id = await _create_client(client, headers)
@@ -112,9 +112,9 @@ async def test_employee_can_read_tasks(client: AsyncClient, super_admin, program
     assert response.json()["total"] == 1
 
 
-async def test_list_tasks_paginated(client: AsyncClient, super_admin, program_manager):
+async def test_list_tasks_paginated(client: AsyncClient, super_admin, project_manager):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
     client_id = await _create_client(client, headers)
@@ -132,9 +132,9 @@ async def test_list_tasks_paginated(client: AsyncClient, super_admin, program_ma
     assert len(body["items"]) == 2
 
 
-async def test_update_task(client: AsyncClient, super_admin, program_manager):
+async def test_update_task(client: AsyncClient, super_admin, project_manager):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
     client_id = await _create_client(client, headers)
@@ -155,9 +155,9 @@ async def test_update_task(client: AsyncClient, super_admin, program_manager):
     assert body["updated_by"] == admin.employee_id
 
 
-async def test_cancel_task(client: AsyncClient, super_admin, program_manager):
+async def test_cancel_task(client: AsyncClient, super_admin, project_manager):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
     client_id = await _create_client(client, headers)
@@ -181,10 +181,10 @@ async def test_get_nonexistent_task_returns_404(client: AsyncClient, super_admin
 
 
 async def test_employee_sees_only_their_own_assigned_tasks(
-    client: AsyncClient, super_admin, program_manager, employee
+    client: AsyncClient, super_admin, project_manager, employee
 ):
     admin, admin_password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, worker_password = employee
     admin_tokens = await login(client, admin.email, admin_password)
     admin_headers = auth_header(admin_tokens["access_token"])
@@ -213,9 +213,9 @@ async def test_employee_sees_only_their_own_assigned_tasks(
     assert theirs_task_id not in task_ids
 
 
-async def test_employee_can_update_status_of_own_task(client: AsyncClient, super_admin, program_manager, employee):
+async def test_employee_can_update_status_of_own_task(client: AsyncClient, super_admin, project_manager, employee):
     admin, admin_password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, worker_password = employee
     admin_tokens = await login(client, admin.email, admin_password)
     admin_headers = auth_header(admin_tokens["access_token"])
@@ -243,10 +243,10 @@ async def test_employee_can_update_status_of_own_task(client: AsyncClient, super
 
 
 async def test_employee_cannot_update_status_of_unassigned_task(
-    client: AsyncClient, super_admin, program_manager, employee
+    client: AsyncClient, super_admin, project_manager, employee
 ):
     admin, admin_password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, worker_password = employee
     admin_tokens = await login(client, admin.email, admin_password)
     admin_headers = auth_header(admin_tokens["access_token"])

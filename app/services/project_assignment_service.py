@@ -17,6 +17,19 @@ from app.services.audit_service import AuditAction, create_audit_log
 _TRACKED_FIELDS = ("allocated_hours", "start_date", "end_date", "is_active", "remarks")
 
 
+def _validate_within_project_dates(project: Project, start_date, end_date) -> None:
+    if start_date < project.project_start_date:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="start_date cannot be before the project's start date.",
+        )
+    if project.project_end_date is not None and (end_date or start_date) > project.project_end_date:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Assignment dates cannot extend beyond the project's end date.",
+        )
+
+
 def to_project_assignment_out(assignment: ProjectAssignment) -> ProjectAssignmentOut:
     return ProjectAssignmentOut.model_validate(assignment)
 
@@ -98,10 +111,12 @@ async def create_project_assignment(
     ip_address: str | None = None,
     user_agent: str | None = None,
 ) -> ProjectAssignment:
-    if await project_service.get_project_by_id(db, data.project_id) is None:
+    project = await project_service.get_project_by_id(db, data.project_id)
+    if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
     if await user_service.get_user_by_id(db, data.employee_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found.")
+    _validate_within_project_dates(project, data.start_date, data.end_date)
 
     assignment = ProjectAssignment(
         project_assignment_id=await _next_project_assignment_id(db),
@@ -149,6 +164,10 @@ async def update_project_assignment(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="end_date cannot be before start_date.",
         )
+    if "start_date" in changes or "end_date" in changes:
+        project = await project_service.get_project_by_id(db, assignment.project_id)
+        if project is not None:
+            _validate_within_project_dates(project, new_start, new_end)
 
     old_values = _snapshot(assignment)
 

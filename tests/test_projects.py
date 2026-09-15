@@ -39,9 +39,9 @@ def _project_payload(client_id: str, manager_id: str, spoc_id: str | None = None
     return payload
 
 
-async def test_super_admin_creates_project(client: AsyncClient, super_admin, program_manager):
+async def test_super_admin_creates_project(client: AsyncClient, super_admin, project_manager):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
     client_id = await _create_client(client, headers)
@@ -62,9 +62,9 @@ async def test_super_admin_creates_project(client: AsyncClient, super_admin, pro
     assert body["project_id"]
 
 
-async def test_create_project_for_nonexistent_client_returns_404(client: AsyncClient, super_admin, program_manager):
+async def test_create_project_for_nonexistent_client_returns_404(client: AsyncClient, super_admin, project_manager):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
 
@@ -91,10 +91,10 @@ async def test_create_project_for_nonexistent_manager_returns_404(client: AsyncC
 
 
 async def test_create_project_with_spoc_from_other_client_returns_422(
-    client: AsyncClient, super_admin, program_manager
+    client: AsyncClient, super_admin, project_manager
 ):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
     client_id = await _create_client(client, headers)
@@ -110,10 +110,10 @@ async def test_create_project_with_spoc_from_other_client_returns_422(
 
 
 async def test_create_project_end_date_before_start_date_rejected(
-    client: AsyncClient, super_admin, program_manager
+    client: AsyncClient, super_admin, project_manager
 ):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
     client_id = await _create_client(client, headers)
@@ -146,9 +146,9 @@ async def test_employee_cannot_create_project(client: AsyncClient, employee):
     assert response.status_code == 403
 
 
-async def test_list_projects_paginated(client: AsyncClient, super_admin, program_manager):
+async def test_list_projects_paginated(client: AsyncClient, super_admin, project_manager):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
     client_id = await _create_client(client, headers)
@@ -165,9 +165,9 @@ async def test_list_projects_paginated(client: AsyncClient, super_admin, program
     assert len(body["items"]) == 2
 
 
-async def test_update_project(client: AsyncClient, super_admin, program_manager):
+async def test_update_project(client: AsyncClient, super_admin, project_manager):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
     client_id = await _create_client(client, headers)
@@ -191,9 +191,9 @@ async def test_update_project(client: AsyncClient, super_admin, program_manager)
     assert body["updated_by"] == admin.employee_id
 
 
-async def test_deactivate_project(client: AsyncClient, super_admin, program_manager):
+async def test_deactivate_project(client: AsyncClient, super_admin, project_manager):
     admin, password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     tokens = await login(client, admin.email, password)
     headers = auth_header(tokens["access_token"])
     client_id = await _create_client(client, headers)

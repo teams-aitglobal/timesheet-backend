@@ -4,7 +4,7 @@ from httpx import AsyncClient
 
 from .conftest import auth_header, login
 
-_WORK_DATE = "2026-01-06"
+_WORK_DATE = (date.today() - timedelta(days=1)).isoformat()
 
 
 async def _create_client_org(client: AsyncClient, headers: dict) -> str:
@@ -85,9 +85,9 @@ def _assigned_task_payload(project_id: str, task_id: str, **overrides) -> dict:
     return payload
 
 
-async def test_employee_creates_and_submits_timesheet(client: AsyncClient, super_admin, program_manager, employee):
+async def test_employee_creates_and_submits_timesheet(client: AsyncClient, super_admin, project_manager, employee):
     admin, admin_password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, worker_password = employee
     admin_tokens = await login(client, admin.email, admin_password)
     admin_headers = auth_header(admin_tokens["access_token"])
@@ -111,9 +111,9 @@ async def test_employee_creates_and_submits_timesheet(client: AsyncClient, super
     assert submit_response.json()["submitted_at"] is not None
 
 
-async def test_adhoc_work_type_rejects_task_id(client: AsyncClient, super_admin, program_manager, employee):
+async def test_adhoc_work_type_rejects_task_id(client: AsyncClient, super_admin, project_manager, employee):
     admin, admin_password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, worker_password = employee
     admin_tokens = await login(client, admin.email, admin_password)
     admin_headers = auth_header(admin_tokens["access_token"])
@@ -137,9 +137,9 @@ async def test_adhoc_work_type_rejects_task_id(client: AsyncClient, super_admin,
     assert response.status_code == 422
 
 
-async def test_adhoc_entry_without_task_id_succeeds(client: AsyncClient, super_admin, program_manager, employee):
+async def test_adhoc_entry_without_task_id_succeeds(client: AsyncClient, super_admin, project_manager, employee):
     admin, admin_password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, worker_password = employee
     admin_tokens = await login(client, admin.email, admin_password)
     admin_headers = auth_header(admin_tokens["access_token"])
@@ -163,9 +163,9 @@ async def test_adhoc_entry_without_task_id_succeeds(client: AsyncClient, super_a
     assert response.json()["task_id"] is None
 
 
-async def test_cannot_log_time_against_unassigned_task(client: AsyncClient, super_admin, program_manager, employee):
+async def test_cannot_log_time_against_unassigned_task(client: AsyncClient, super_admin, project_manager, employee):
     admin, admin_password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, worker_password = employee
     admin_tokens = await login(client, admin.email, admin_password)
     admin_headers = auth_header(admin_tokens["access_token"])
@@ -184,9 +184,9 @@ async def test_cannot_log_time_against_unassigned_task(client: AsyncClient, supe
     assert response.status_code == 403
 
 
-async def test_daily_hours_cannot_exceed_24(client: AsyncClient, super_admin, program_manager, employee):
+async def test_daily_hours_cannot_exceed_24(client: AsyncClient, super_admin, project_manager, employee):
     admin, admin_password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, worker_password = employee
     admin_tokens = await login(client, admin.email, admin_password)
     admin_headers = auth_header(admin_tokens["access_token"])
@@ -216,9 +216,9 @@ async def test_daily_hours_cannot_exceed_24(client: AsyncClient, super_admin, pr
     assert second.status_code == 422
 
 
-async def test_future_work_date_rejected(client: AsyncClient, super_admin, program_manager, employee):
+async def test_future_work_date_rejected(client: AsyncClient, super_admin, project_manager, employee):
     admin, admin_password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, worker_password = employee
     admin_tokens = await login(client, admin.email, admin_password)
     admin_headers = auth_header(admin_tokens["access_token"])
@@ -236,9 +236,9 @@ async def test_future_work_date_rejected(client: AsyncClient, super_admin, progr
     assert response.status_code == 422
 
 
-async def test_full_reject_and_resubmit_flow(client: AsyncClient, super_admin, program_manager, employee):
+async def test_full_reject_and_resubmit_flow(client: AsyncClient, super_admin, project_manager, employee):
     admin, admin_password = super_admin
-    manager, manager_password = program_manager
+    manager, manager_password = project_manager
     worker, worker_password = employee
     admin_tokens = await login(client, admin.email, admin_password)
     admin_headers = auth_header(admin_tokens["access_token"])
@@ -283,9 +283,9 @@ async def test_full_reject_and_resubmit_flow(client: AsyncClient, super_admin, p
     assert approve_response.json()["approved_by"] == manager.employee_id
 
 
-async def test_approved_timesheet_is_immutable(client: AsyncClient, super_admin, program_manager, employee):
+async def test_approved_timesheet_is_immutable(client: AsyncClient, super_admin, project_manager, employee):
     admin, admin_password = super_admin
-    manager, manager_password = program_manager
+    manager, manager_password = project_manager
     worker, worker_password = employee
     admin_tokens = await login(client, admin.email, admin_password)
     admin_headers = auth_header(admin_tokens["access_token"])
@@ -310,10 +310,10 @@ async def test_approved_timesheet_is_immutable(client: AsyncClient, super_admin,
 
 
 async def test_other_employee_cannot_edit_or_submit_someone_elses_timesheet(
-    client: AsyncClient, super_admin, program_manager, employee, other_employee
+    client: AsyncClient, super_admin, project_manager, employee, other_employee
 ):
     admin, admin_password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, worker_password = employee
     other, other_password = other_employee
     admin_tokens = await login(client, admin.email, admin_password)
@@ -336,13 +336,13 @@ async def test_other_employee_cannot_edit_or_submit_someone_elses_timesheet(
     assert response.status_code == 403
 
 
-async def test_unrelated_program_manager_cannot_approve(
-    client: AsyncClient, super_admin, program_manager, employee, other_program_manager
+async def test_unrelated_project_manager_cannot_approve(
+    client: AsyncClient, super_admin, project_manager, employee, other_project_manager
 ):
     admin, admin_password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, worker_password = employee
-    other_manager, other_manager_password = other_program_manager
+    other_manager, other_manager_password = other_project_manager
     admin_tokens = await login(client, admin.email, admin_password)
     admin_headers = auth_header(admin_tokens["access_token"])
     project_id, task_id = await _setup_project_with_task(client, admin_headers, manager.employee_id, worker.employee_id)
@@ -363,10 +363,10 @@ async def test_unrelated_program_manager_cannot_approve(
 
 
 async def test_pending_approval_scoped_to_managers_projects(
-    client: AsyncClient, super_admin, program_manager, employee
+    client: AsyncClient, super_admin, project_manager, employee
 ):
     admin, admin_password = super_admin
-    manager, manager_password = program_manager
+    manager, manager_password = project_manager
     worker, worker_password = employee
     admin_tokens = await login(client, admin.email, admin_password)
     admin_headers = auth_header(admin_tokens["access_token"])
@@ -389,9 +389,9 @@ async def test_pending_approval_scoped_to_managers_projects(
     assert body["total_hours"] == 4.0
 
 
-async def test_employee_cannot_approve_own_timesheet(client: AsyncClient, super_admin, program_manager, employee):
+async def test_employee_cannot_approve_own_timesheet(client: AsyncClient, super_admin, project_manager, employee):
     admin, admin_password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, worker_password = employee
     admin_tokens = await login(client, admin.email, admin_password)
     admin_headers = auth_header(admin_tokens["access_token"])
@@ -409,9 +409,9 @@ async def test_employee_cannot_approve_own_timesheet(client: AsyncClient, super_
     assert response.status_code == 403
 
 
-async def test_discard_draft_timesheet(client: AsyncClient, super_admin, program_manager, employee):
+async def test_discard_draft_timesheet(client: AsyncClient, super_admin, project_manager, employee):
     admin, admin_password = super_admin
-    manager, _ = program_manager
+    manager, _ = project_manager
     worker, worker_password = employee
     admin_tokens = await login(client, admin.email, admin_password)
     admin_headers = auth_header(admin_tokens["access_token"])

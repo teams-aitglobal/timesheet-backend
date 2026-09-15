@@ -35,18 +35,18 @@ async def test_employee_cannot_create_client(client: AsyncClient, employee):
     assert response.status_code == 403
 
 
-async def test_program_manager_cannot_manage_clients(client: AsyncClient, program_manager):
-    user, password = program_manager
+async def test_project_manager_can_manage_clients(client: AsyncClient, project_manager):
+    user, password = project_manager
     tokens = await login(client, user.email, password)
     headers = auth_header(tokens["access_token"])
 
     create_response = await client.post(
         "/api/v1/clients", json={"client_name": "Acme Corp"}, headers=headers
     )
-    assert create_response.status_code == 403
+    assert create_response.status_code == 201, create_response.text
 
     list_response = await client.get("/api/v1/clients", headers=headers)
-    assert list_response.status_code == 403
+    assert list_response.status_code == 200
 
 
 async def test_list_clients_paginated(client: AsyncClient, super_admin):

@@ -92,8 +92,8 @@ async def employee_draft_timesheet_count(db: AsyncSession, employee_id: str) -> 
     return total
 
 
-async def manager_project_overview(db: AsyncSession, program_manager_id: str) -> list[ManagerProjectSummary]:
-    projects, _ = await project_service.list_projects(db, project_manager_id=program_manager_id, limit=200)
+async def manager_project_overview(db: AsyncSession, project_manager_id: str) -> list[ManagerProjectSummary]:
+    projects, _ = await project_service.list_projects(db, project_manager_id=project_manager_id, limit=200)
     if not projects:
         return []
     project_ids = [p.project_id for p in projects]

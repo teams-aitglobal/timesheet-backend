@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +19,7 @@ _TRACKED_FIELDS = (
     "start_date",
     "due_date",
     "status",
+    "completed_at",
 )
 
 
@@ -26,7 +29,7 @@ def to_task_out(task: Task) -> TaskOut:
 
 def _snapshot(task: Task) -> dict:
     snapshot = {field: getattr(task, field) for field in _TRACKED_FIELDS}
-    for date_field in ("start_date", "due_date"):
+    for date_field in ("start_date", "due_date", "completed_at"):
         if snapshot[date_field] is not None:
             snapshot[date_field] = snapshot[date_field].isoformat()
     return snapshot
@@ -182,9 +185,16 @@ async def update_task(
         )
 
     old_values = _snapshot(task)
+    old_status = task.status
 
     for field, value in changes.items():
         setattr(task, field, value)
+
+    if "status" in changes:
+        if task.status == TaskStatus.COMPLETED and old_status != TaskStatus.COMPLETED:
+            task.completed_at = datetime.now(timezone.utc)
+        elif old_status == TaskStatus.COMPLETED and task.status != TaskStatus.COMPLETED:
+            task.completed_at = None
 
     if changes:
         task.updated_by = actor.employee_id
