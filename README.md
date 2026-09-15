@@ -1,11 +1,5 @@
-# Timesheet Backend
 
-FastAPI backend for the Timesheet Management Application - Phase 1: user
-management, authentication, authorization, and audit logging. Business
-modules (customers, projects, tasks, timesheets) are **not** implemented in
-this phase.
 
-## Stack
 
 Python 3.12+, FastAPI, SQLAlchemy 2.x (async, asyncpg), Pydantic v2,
 python-jose (JWT), bcrypt, pytest / pytest-asyncio / httpx.
